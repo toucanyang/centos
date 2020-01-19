@@ -1,0 +1,31 @@
+Linux ip 冲突
+========================
+arping 10.1.16.51
+========================
+yum install arp-scan -y 
+ip a
+arp-scan  -I eth0 -l
+
+会列出网段的可以到达的ip mac 厂商
+
+[root@BJ-Docker-18 ~]# arp-scan  -I bond0 -l
+Interface: bond0, datalink type: EN10MB (Ethernet)
+Starting arp-scan 1.9.2 with 256 hosts (http://www.nta-monitor.com/tools-resources/security-tools/arp-scan/)
+10.1.18.1       18:66:da:b5:4f:xx       (Unknown)
+10.1.18.2       18:66:da:b5:61:xx       (Unknown)
+10.1.18.3       18:66:da:b5:72:xx       (Unknown)
+10.1.18.4       18:66:da:b5:6b:xx       (Unknown)
+10.1.18.5       80:18:44:e9:18:xx       (Unknown)
+10.1.18.51      00:50:56:b7:be:xx       VMware, Inc.
+10.1.18.52      00:50:56:b7:d9:xx       VMware, Inc.
+10.1.18.53      24:6e:96:8a:cf:xx       Dell Inc.
+10.1.18.54      24:6e:96:8a:ce:xx       Dell Inc.
+10.1.18.55      24:6e:96:8a:d6:xx       Dell Inc.
+10.1.18.56      04:25:c5:97:65:xx       (Unknown)
+10.1.18.57      38:bc:01:32:7e:xx       (Unknown)
+10.1.18.76      34:1e:6b:59:8d:xx       (Unknown)
+10.1.18.77      34:1e:6b:59:8d:xx       (Unknown)
+10.1.18.78      34:1e:6b:59:8b:xx       (Unknown)
+10.1.18.79      34:1e:6b:53:5f:xx       (Unknown)
+10.1.18.80      34:1e:6b:53:5e:xx       (Unknown)
+10.1.18.81      9c:1d:36:dc:d5:xx       (Unknown)

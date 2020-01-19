@@ -1,0 +1,6 @@
+pstree 安装
+centos最小化安装后，无pstree命令，无法显示进程树，也无法使用locate查询
+yum安装psmisc
+yum install psmisc -y
+pstree
+
