@@ -1,0 +1,413 @@
+wk是一个强大的文本分析工具。
+
+awk其名称得自于它的创始人 Alfred Aho 、Peter Weinberger 和 Brian Kernighan 姓氏的首个字母。实际上 awk 的确拥有自己的语言： awk 程序设计语言 ， 三位创建者已将它正式定义为“样式扫描和处理语言”。它允许您创建简短的程序，这些程序读取输入文件、为数据排序、处理数据、对输入执行计算以及生成报表，还有无数其他的功能。
+
+
+
+语法结构
+awk option scrips file
+
+option
+
+-F 指定分隔符，而不以默认的空白（空格符或者制表符）
+
+-v 指定变量
+
+-f 指定脚本的文件名，即将脚本放入一个文件当中，避免 awk 书写太长，影响视觉，和重复编写
+
+
+
+关键字
+BEGIN 关键字会执行一次指定的脚本段
+
+END 关键字定义的脚本段，在所有操作完成之后
+
+处理数据的脚本段在第二个程序中定义
+
+
+
+测试文件内容
+代码里井号开头部分的代表输出内容（输出不包含井号），下同
+
+
+
+cat mi_info
+# mi6-1 5.15" 835 6G 64G 3350mAh 2499
+# mi6-2 5.15" 835 6G 128G 3350mAh 2899
+# minote3-1 5.5" 660 6G 64G 3500mAh 2499
+# minote3-2 5.5" 660 6G 128G 3500mAh 2899
+# mix2-1 5.99" 835 6G 64G 3400mAh 3299
+# mix2-2 5.99" 835 6G 128G 3400mAh 3599
+# mix2-3 5.99" 835 6G 256G 3400mAh 3999
+
+初级示例
+
+
+# 默认的模式匹配中就已经包含了 if 的意思了
+
+
+awk '/2499/' mi_info
+# mi6-1 5.15" 835 6G 64G 3350mAh 2499
+# minote3-1 5.5" 660 6G 64G 3500mAh 2499
+
+
+awk '$5=="256G"' mi_info
+# mix2-3 5.99" 835 6G 256G 3400mAh 3999
+
+
+awk '$1 ~ "note"{print}' mi_info      
+# minote3-1 5.5" 660 6G 64G 3500mAh 2499
+# minote3-2 5.5" 660 6G 128G 3500mAh 2899
+
+
+awk '$0 ~ /note/{print $1, "MEMSIZE->", $3, "Price->", $NF}' mi_info
+# minote3-1 MEMSIZE-> 6G Price-> 2499
+# minote3-2 MEMSIZE-> 6G Price-> 2899
+
+
+## -f 示例
+
+
+# cat awkfile
+/note/{
+        test="price is"
+        print $1, test, $NF
+}
+
+
+awk -f awkfile mi_info
+# minote3-1 price is 2499
+# minote3-2 price is 2899
+
+
+## -v 示例
+awk -v test="price is" '/note/{ print $1, test, $NF}' mi_info
+# minote3-1 price is 2499
+# minote3-2 price is 2899
+
+
+运算符(优先级由大到小排列)
+++ -- 增加与减少(前置或后置)
+
+^ ** 指数(右结合性)
+
+! + - 非、一元加号、一元减号
+
+* / % 乘、除、余数
+
++ - 加、减
+
+< <= == != > >= 比较
+
+&& 逻辑AND( 简写)
+
+|| 逻辑OR( 简写)
+
+?: 三元条件式
+
+= += -= *= /= %= ^= **= 赋值( 右结合性)
+
+
+
+内置变量
+$ 后面跟数字，表示获取指定列的域，0 代表取整条记录
+
+ARGC 命令行参数个数
+
+ARGV 命令行参数构成胡数组
+
+FILENAME 当前输入文件的文件名
+
+FS 设置输入域分隔符，等价于命令行 -F选项
+
+OFS 输出域分隔符
+
+RS 控制记录分隔符
+
+ORS 输出记录分隔符
+
+NF 浏览记录的域的个数
+
+NR 已读的记录数
+
+FNR 与NR功用类似，不同的是awk每打开一个新文件，FNR便从0重新累计
+
+IGNORECASE 是否忽略大小写
+
+记录 默认指的是每行，因为记录分隔符（RS）是换行符
+域 默认指的是每个单词，因为域分隔符（FS）是空格
+
+awk 通过内建变量 ARGC ( 参数计数 ) 与 ARGV ( 参数向量，或参数值 ) ，让命令行参数可用。
+
+
+
+高级示例
+
+cat showargs.awk
+
+
+BEGIN {
+    print "ARGC= ", ARGC
+    for (k=0; k<ARGC; k++) {
+        print "ARGV["k"]=["ARGV[k]"]"
+        }
+}
+
+
+awk -f showargs.awk mi_info
+# ARGC=  2# ARGV[0]=[awk]
+# ARGV[1]=[mi_info]
+## 求和
+awk '{sum+=$NF} END {print "Sum = ", sum}' mi_info
+# Sum =  21693
+
+
+## 求平均
+awk '{sum+=$NF} END {print "Average = ", sum/NR}' mi_info
+# Average =  3099
+
+
+## 求最大值
+awk 'BEGIN {max = 0} {if ($NF>max) max=$NF fi} END {print "Max=", max}' mi_info 
+# Max= 3999
+
+
+## 求最小值（min的初始值设置一个超大数即可）
+awk 'BEGIN {min = 1999999} {if ($NF<min) min=$NF fi} END {print "Min=", min}' mi_info
+# Min= 2499
+
+
+# 求访问次数的Top 10 Resource，可以根据此进行优化
+cat logs/`date +%u`.log | grep -v '172.16' |grep -v '127.0.0.1' \
+    | awk '{ if(index($1,"219.141.246")!=0) print $2; else print $1 }' \
+    | sort | uniq -c | sort -n | tail -n 10
+
+
+# awk的范围模式也是封闭范围。
+# 在所有记录中他们会顺序进行多次匹配，第一次匹配完后还可以进行下面接下来的第二次、第三次可能的匹配范围。
+# 如果开头匹配到了，但是没有结尾的话，会把整个文件记录的末尾当作是这次匹配的结尾作为范围
+awk '/mi6/,/note/ {print NR, $1, $NF}' mi_info 
+# 1 mi6-1 2499
+# 2 mi6-2 2899
+# 3 minote3-1 2499
+
+# 忽略大小写
+awk '{IGNORECASE=1}; $1~"MI" {print NR,$0}' mi_info
+# "所有信息"
+
+
+# 每 5 行合并为 1 行
+BEGIN {
+    a = 0;
+    s = "";
+}
+{
+    a += 1;
+    s = s" | "$0
+    if (a % 5 == 0) {
+        print s;
+        s = "";
+    }
+}
+END {
+    print s
+}
+
+
+awk 'BEGIN{a="100"; b="10test10"; print (a+b+0);}'
+# 110
+# 只需要将变量通过 "+" 连接运算。自动强制将字符串转为整型。
+# 非数字变成 0，发现第一个非数字字符，后面自动忽略。
+
+
+awk 'BEGIN{a=100;b=100;c=(a""b);print c}'
+# 100100
+# 只需要将变量与 "" 符号连接起来运算即可。
+
+
+awk 'BEGIN{a="a";b="b";c=(a+b);print c}'
+# 0
+# 字符串连接操作通"二"，"+"号操作符。模式强制将左右2边的值转为 数字类型。然后进行操作。
+
+
+数组
+## 数组示例
+awk 'BEGIN{x=0;i=0;} \
+    {name[x++]=$1;} \
+    END { for(;i<NR;i++){ print "name["i"] is",name[i]} }' mi_info
+
+
+# name[0] is mi6-1
+# name[1] is mi6-2
+# name[2] is minote3-1
+# name[3] is minote3-2
+# name[4] is mix2-1
+# name[5] is mix2-2
+# name[6] is mix2-3
+
+
+
+正则表达式元字符
+^ 行首定位符
+
+$ 行尾定位符
+
+. 匹配除换行之外的单个字符
+
+\* 匹配0个或者多个前导字符(这里是前导字符0或者多个，任意一个或多个字符，使用 .* )
+
++ 匹配一个或者多个前导字符
+
+? 匹配0个或者1个前导字符
+
+[] 指定字符中的任意一个字符，比如[Ll] [a-z]
+
+[^] 上面一样，不匹配的字符
+
+AA|BB 匹配AA或者BB
+
+(AB)+ 匹配一个或者多个AB组合，比如AB,ABAB,ABABAB...
+
+\* 匹配*本身
+
+& 保存查找匹配到的串，可以用在后面的替换中 s/love/**&**/
+
+
+
+内置函数
+sub(/reg/,替换串[,目标串])
+
+gsub(/reg/,替换串[,目标串])
+
+index(str,sub_str)　返回sub_str第一次在str中出现的位置(偏移量从1开始)
+
+length(str) 返回字符串的字符个数
+
+substr(str,start_pos[,length])　返回子串，如果没有length，就到串的末尾
+
+match(str,/reg/) 返回正则匹配在字符串中的位置，同时设置RSTART和RLENGTH的值
+
+split(str,arr_name[,split_sig])
+
+
+
+算术函数
+atan2(x,y)
+
+cos(x)
+
+exp(x)
+
+log(x)
+
+sin(x)
+
+sqrt(x)
+
+int(x)直接舍去小数，保留整数部分
+
+rand() 产生随机数(0~1) srand(x) 初始化随机数种子
+
+默认情况下每次调用rand()，结果都会产生相同的随机数，这时候需要调用srand()重新产生一个种子，后面的随机数才不同
+
+## 函数示例
+awk 'BEGIN{ print rand(),rand(),srand(),rand(),rand();}'
+# 0.237788 0.291066 1 0.215969 0.629868
+awk 'BEGIN{ print rand(),rand(),srand(),rand(),rand();}'
+# 0.237788 0.291066 1 0.556348 0.749557
+awk 'BEGIN{ print rand(),rand(),srand(),rand(),rand();}'
+# 0.237788 0.291066 1 0.0931369 0.835396
+
+
+条件语句和循环
+
+## 语句和循环示例
+
+
+(a) if
+# 在条件模式中，if是隐含的模式了，而条件语句if也可以按照需要直接声明出来的句式类似于
+if () {} else if () {} else {}
+
+
+awk '{ if( $1 ~ /note/) { print "note related."} else if ( $1 ~ /mix/ ) { print "mix related."} else { print "other ..."} }' mi_info
+# other ...
+# other ...
+# note related.
+# note related.
+# mix related.
+# mix related.
+# mix related.
+
+
+(b) while
+# 句法
+while () {}
+
+
+awk 'BEGIN { i = 0; count = 0; } { while ( i < NR ) { i ++; if ( $1 ~ /note/ ) { count++; print NR, $1,$4,$5 } } } END { print "Count:",count }' mi_info
+# 3 minote3-1 6G 64G
+# 4 minote3-2 6G 128G
+# Count: 2
+
+(c) for
+# 普通for循环，句法
+for( ; ; ){}
+
+
+awk 'BEGIN { i = 0;} { for(;i<NR;i++) { if( $1 ~ /note/ ){ print NR,$1,$4,$5,"~~" } }}' mi_info
+# 3 minote3-1 6G 64G ~~
+# 4 minote3-2 6G 128G ~~
+
+
+(d) break continue
+# 同C/C++语言一样，是作用于跳出循环体和跳出本次循环的关键字。
+
+
+### 程序控制语句
+(a) next
+# 从文件中读取下一行输入，然后从awk脚本顶部开始重新执行。同continue效果也有点相似，只不过这里是作用于awk工具在对每行操作的自动“循环”中的
+(b) exit
+# 中断记录的处理，但是不能够跳过END语句块。exit可以带一个范围为0~255的退出参数，约定0表示成功，这个退出参数实际就传递给了$?表示执行的结果
+
+
+awk '{ if ( $1 ~ /note/ ) { print NR,$1,$7,"skip"; next; } if ( $1 ~ /mix/ ) { print NR,$1,$7,"exit will"; exit 3; } print NR,$1,$7,"after if..."; } END { print "Fininal should be called here..." }' mi_info
+# 1 mi6-1 2499 after if...
+# 2 mi6-2 2899 after if...
+# 3 minote3-1 2499 skip
+# 4 minote3-2 2899 skip
+# 5 mix2-1 3299 exit will
+# Fininal should be called here...
+echo $?
+# 3
+
+
+系统交互
+## (a) 支持 > >>　重定向符号使用的时候作为文件名参数需要使用 "" 括起来，getline可以用于输入重定向来获得输入信息
+awk 'BEGIN { "date" | getline date; print "The date is",date > "date.file"}'
+cat date.file
+# The date is Wed Dec 28 18:43:39 HKT 2016
+
+
+## (b) 管道 |
+awk '/note/ { print $0 | "grep 2499" }' mi_info
+# minote3-1 5.5" 660 6G 64G 3500mAh 2499
+
+
+## (c) system 函数。可以进行系统命令调用
+awk 'BEGIN { system("whoami") }'
+# root
+
+
+## (d) printf　格式化输出信息，跟C语言的类似
+awk 'BEGIN { printf "Hello, %s, you are %d years old.\n","Nicol TAO","23"}'
+# Hello, Nicol TAO, you are 23 years old.
+
+
+总结
+最后总结一下awk使用经验：
+
+如果处理逻辑复杂，就将代码写进文件里，再通过 -f 引用；这样可防止敲错代码。
+
+灵活调用系统命令，内置变量，使代码更简洁。
+
+处理大文件时，多审核优化逻辑代码，可有效提高执行效率。
